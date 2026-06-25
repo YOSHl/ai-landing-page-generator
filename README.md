@@ -1,30 +1,29 @@
 # ai-landing-page-generator
 
-Enter a product name, description, and price. The app generates sales copy (hero text, features list, FAQ) via the Anthropic API, shows a live preview, creates a Stripe Payment Link, and saves the page to a shareable URL.
+Enter a product name, description, and price. Claude generates a complete sales page in real time — hero, features, FAQ — while you watch the sections appear. Once done, a Stripe Payment Link is created and the page gets a shareable URL.
 
 **Demo**: coming soon
 
+## How it works
+
+1. Fill in the form — product name, a short description, and price
+2. Claude streams the copy section by section; the preview updates live
+3. Click "Create payment link" — Stripe creates a hosted checkout page
+4. Copy the shareable URL and send it to customers
+
 ## Stack
 
-- Next.js 14, TypeScript, App Router
-- Anthropic SDK (`claude-sonnet-4-6`)
-- Stripe API (Payment Links)
+- Next.js (App Router, TypeScript)
+- Anthropic SDK — `claude-sonnet-4-6` with streaming
+- Stripe API — Payment Links
+- Vercel KV — page storage (falls back to in-memory for local dev)
 - Tailwind CSS
-- Vercel KV (page storage)
-- Vercel (hosting)
-
-## Features
-
-- Streaming output — text appears as it generates, no waiting
-- Live preview of the generated page while it streams
-- Stripe Payment Link created automatically after generation
-- QR code for the payment link
-- Each generated page gets a unique URL you can share
+- Vercel
 
 ## Setup
 
 ```bash
-git clone https://github.com/YOSHl/ai-landing-page-generator.git
+git clone https://github.com/moriyama-dev/ai-landing-page-generator.git
 cd ai-landing-page-generator
 npm install
 cp .env.example .env.local
@@ -32,13 +31,12 @@ cp .env.example .env.local
 
 Fill in `.env.local`:
 
-```env
-ANTHROPIC_API_KEY=sk-ant-...
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
-KV_REST_API_URL=...
-KV_REST_API_TOKEN=...
-```
+| Variable | Required | Description |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Yes | Your Anthropic API key |
+| `STRIPE_SECRET_KEY` | No | Stripe secret key — Payment Links are skipped if missing |
+| `KV_REST_API_URL` | No | Vercel KV URL — falls back to in-memory storage |
+| `KV_REST_API_TOKEN` | No | Vercel KV token |
 
 ```bash
 npm run dev
@@ -48,44 +46,33 @@ npm run dev
 
 ```
 app/
-  page.tsx                    # product input form
+  page.tsx                # main page (form + live preview)
   api/
-    generate/                 # streaming route (Anthropic)
-    stripe/                   # Payment Link creation
-  p/[id]/page.tsx             # shared page view
+    generate/route.ts     # streams Anthropic response as NDJSON
+    stripe/route.ts       # creates Stripe Payment Link
+    pages/route.ts        # saves / retrieves pages from KV
+  p/[id]/page.tsx         # shareable page view
 components/
-  ProductForm.tsx
-  LandingPagePreview.tsx
-  PaymentLinkCard.tsx
+  ProductForm.tsx          # input form with streaming state
+  LandingPagePreview.tsx   # renders sections as they arrive
+  PaymentLinkCard.tsx      # Stripe + share URL actions
 lib/
-  anthropic.ts
-  stripe.ts
-.env.example
+  types.ts                # shared TypeScript types
+  prompt.ts               # Anthropic prompt builder
+  kv.ts                   # KV storage with in-memory fallback
 ```
 
 ---
 
 ## 日本語
 
-商品名・説明・価格を入力すると、セールスコピーをAnthropicのAPIで生成し、ライブプレビューを表示しながらStripeの決済リンクも自動で作成するWebアプリです。
-
-### 機能
-
-- ストリーミング出力（生成しながらリアルタイムで表示）
-- 生成中のページをライブプレビュー
-- 生成完了後にStripe Payment Linkを自動作成
-- 決済リンクのQRコード表示
-- 生成したページをURLで共有可能
+商品名・説明・価格を入力すると、Claudeがセールスコピーをリアルタイムでストリーミング生成します。ヒーロー・機能・FAQの各セクションが順番に表示され、生成完了後はStripeの決済リンクと共有URLを発行します。
 
 ### セットアップ
 
 ```bash
-git clone https://github.com/YOSHl/ai-landing-page-generator.git
-cd ai-landing-page-generator
 npm install
 cp .env.example .env.local
-# .env.local にAPIキーを記入
+# .env.local に ANTHROPIC_API_KEY を記入（最低限これだけで動く）
 npm run dev
 ```
-
-`.env.example` に必要なキーの一覧と説明があります。
